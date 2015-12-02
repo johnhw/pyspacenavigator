@@ -7,17 +7,17 @@ import timeit
 high_acc_clock = timeit.default_timer
 
 ## Simple HID code to read data from the 3dconnexion Space Navigator
-mappings={"y":[1, 1, 2], "x":[1, 3, 4], "z":[1,5,6], "roll":[2,1,2], "pitch":[2,3,4], "yaw":[2,5,6]}
+mappings={"y":[1, 1, 2], "x":[1, 3, 4], "z":[1,5,6], "roll":[2,1,2], "pitch":[2,3,4], "yaw":[2,5,6], "button":[3,1,2]}
 channel1_mappings = {k:v for k,v in mappings.iteritems() if v[0]==1}
 channel2_mappings = {k:v for k,v in mappings.iteritems() if v[0]==2}
 
 # the ID for the space navigator
 space_navigator_hid_id = [0x046d,0xc626]
 
-# _space_navigator_dict is a dictionary mapping [t,x,y,z,pitch,yaw,roll] to their latest values.
+# _space_navigator_dict is a dictionary mapping [t,x,y,z,pitch,yaw,roll,button] to their latest values.
 # it is empty if the device has not been opened yet
-_space_navigator_dict = {}
-SpaceNavigator = namedtuple('SpaceNavigator', ['t','x', 'y', 'z', 'roll', 'pitch', 'yaw'])
+_space_navigator_dict = {"button":0}
+SpaceNavigator = namedtuple('SpaceNavigator', ['t','x', 'y', 'z', 'roll', 'pitch', 'yaw', 'button'])
 _space_navigator = None
 _device = None
 
@@ -29,7 +29,7 @@ def byte_2(y1,y2):
     return x
     
 
-def callback_handler(data, callback=None):
+def callback_handler(data, callback=None, button_callback=None):
     global _space_navigator
     """
     Update the state based on the incoming data
@@ -55,24 +55,46 @@ def callback_handler(data, callback=None):
     
     The timestamp (in fractional seconds since the start of the program)  is written as element "t"
     
-    If callback is provided, it is called on with a copy of the current state dictionary    
+    If callback is provided, it is called on with a copy of the current state tuple.
+    If button_callback is provided, it is called only on button pushes with the argument (state, button_state).
     """
+    
+    button_pushed = False
     if data[0]==1:
         for name,(chan,b1,b2) in channel1_mappings.iteritems():
             _space_navigator_dict[name] = byte_2(data[b1], data[b2])/350.0
-    else:
+    elif data[0]==2:
         for name,(chan,b1,b2) in channel2_mappings.iteritems():
             _space_navigator_dict[name] = byte_2(data[b1], data[b2])/350.0
+    elif data[0]==3:
+        button_pushed = True
+        _space_navigator_dict["button"] = data[1]
+    else:
+        pass
+        
     _space_navigator_dict["t"] = high_acc_clock()
-    if len(_space_navigator_dict)==7:
+    
+    if len(_space_navigator_dict)==8:
         _space_navigator = SpaceNavigator(**_space_navigator_dict)
     
     if callback:
         callback(_space_navigator)
         
-   
+    if button_callback:
+        button_callback(_space_navigator, data[1])
+        
+_led_usage = hid.get_full_usage_id(0x8, 0x4b) 
 
 
+def set_led(state):
+    """Set the LED state to state (True or False)"""
+    if _device:
+        reports = _device.find_output_reports()
+        for report in reports:
+            if _led_usage in report:
+                report[_led_usage] = state
+                report.send()
+        
 def close():
     """Close the device, if it is open"""
     if _device:
@@ -87,17 +109,18 @@ def read():
     """
     return tuple_state
     
-def open(callback=None):
+def open(callback=None, button_callback=None):
     """
     Open the 3D space navigator device.
     
     Parameters:
-        callback: If callback is provided, it is called on each HID update with a copy of the current state dictionary    
-
+        callback: If callback is provided, it is called on each HID update with a copy of the current state dictionary   
+        button_callback: If button_callback is provided, it is called on each button push, with the arguments (state_tuple, button_state) 
     Returns:
         True if the device was opened successfully
         False if the device could not be opened
     """
+    global _device
     # scan for HID devices, returns True if the device could be opened
     all_hids = hid.find_all_hid_devices()
     if all_hids:
@@ -105,8 +128,8 @@ def open(callback=None):
             if device.vendor_id == space_navigator_hid_id[0] and device.product_id == space_navigator_hid_id[1]:
                 print("3Dconnexion SpaceNavigator found")                
                 device.open()
-                if callback:
-                    device.set_raw_data_handler(lambda x:callback_handler(x,callback))
+                if callback or button_callback:
+                    device.set_raw_data_handler(lambda x:callback_handler(x,callback=callback, button_callback=button_callback))
                 else:
                     device.set_raw_data_handler(callback_handler)
                 _device = device
@@ -122,9 +145,17 @@ def print_state(state):
     # simple default printer callback
     if state:
         print " ".join(["%4s %+.2f"%(k,getattr(state,k)) for k in ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't']])
+        
+        
+def toggle_led(state, button):
+    # Switch on the led on left push, off on right push
+    if button&1:
+        set_led(0)
+    if button&2:
+        set_led(1)
 
 if __name__ == '__main__':
-    open(callback=print_state)
+    open(callback=print_state, button_callback=toggle_led)
     while 1:
         sleep(1)
     
