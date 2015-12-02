@@ -151,9 +151,9 @@ def print_state(state):
 def toggle_led(state, button):
     # Switch on the led on left push, off on right push
     if button&1:
-        set_led(0)
-    if button&2:
         set_led(1)
+    if button&2:
+        set_led(0)
 
 if __name__ == '__main__':
     open(callback=print_state, button_callback=toggle_led)
