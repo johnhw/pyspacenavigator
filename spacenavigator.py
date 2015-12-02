@@ -80,7 +80,7 @@ def callback_handler(data, callback=None, button_callback=None):
     if callback:
         callback(_space_navigator)
         
-    if button_callback:
+    if button_callback and button_pushed:
         button_callback(_space_navigator, data[1])
         
 _led_usage = hid.get_full_usage_id(0x8, 0x4b) 
@@ -140,12 +140,10 @@ def open(callback=None, button_callback=None):
         print("No HID devices detected")
         return False
      
-
 def print_state(state):
     # simple default printer callback
     if state:
         print " ".join(["%4s %+.2f"%(k,getattr(state,k)) for k in ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't']])
-        
         
 def toggle_led(state, button):
     # Switch on the led on left push, off on right push
@@ -156,6 +154,7 @@ def toggle_led(state, button):
 
 if __name__ == '__main__':
     open(callback=print_state, button_callback=toggle_led)
+    set_led(0)
     while 1:
         sleep(1)
     
