@@ -29,7 +29,7 @@ def byte_2(y1,y2):
     return x
     
 
-def sample_handler(data, callback=None):
+def callback_handler(data, callback=None):
     global _space_navigator
     """
     Update the state based on the incoming data
@@ -106,9 +106,9 @@ def open(callback=None):
                 print("3Dconnexion SpaceNavigator found")                
                 device.open()
                 if callback:
-                    device.set_raw_data_handler(lambda x:sample_handler(x,callback))
+                    device.set_raw_data_handler(lambda x:callback_handler(x,callback))
                 else:
-                    device.set_raw_data_handler(sample_handler)
+                    device.set_raw_data_handler(callback_handler)
                 _device = device
                 return True
         print("No 3Dconnexion SpaceNavigator found")
