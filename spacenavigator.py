@@ -17,7 +17,7 @@ space_navigator_hid_id = [0x046d,0xc626]
 # _space_navigator_dict is a dictionary mapping [t,x,y,z,pitch,yaw,roll] to their latest values.
 # it is empty if the device has not been opened yet
 _space_navigator_dict = {}
-SpaceNavigator = namedtuple('SpaceNavigator', ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't'])
+SpaceNavigator = namedtuple('SpaceNavigator', ['t','x', 'y', 'z', 'roll', 'pitch', 'yaw'])
 _space_navigator = None
 _device = None
 
