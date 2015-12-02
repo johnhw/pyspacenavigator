@@ -47,6 +47,9 @@ def callback_handler(data, callback=None, button_callback=None):
     (c,d) = y tilting (pitch)
     (d,e) = z tilting (yaw)
     
+    if id==3 then the mapping is
+    a = button. Bit 1 = button 1, bit 2 = button 2
+    
     Each movement of the device always causes two HID events, one
     with id 1 and one with id 2, to be generated, one after the other.
     
@@ -56,7 +59,7 @@ def callback_handler(data, callback=None, button_callback=None):
     The timestamp (in fractional seconds since the start of the program)  is written as element "t"
     
     If callback is provided, it is called on with a copy of the current state tuple.
-    If button_callback is provided, it is called only on button pushes with the argument (state, button_state).
+    If button_callback is provided, it is called only on button state changes with the argument (state, button_state).
     """
     
     button_pushed = False
@@ -83,8 +86,8 @@ def callback_handler(data, callback=None, button_callback=None):
     if button_callback and button_pushed:
         button_callback(_space_navigator, data[1])
         
+# Usage ID for the status LED
 _led_usage = hid.get_full_usage_id(0x8, 0x4b) 
-
 
 def set_led(state):
     """Set the LED state to state (True or False)"""
