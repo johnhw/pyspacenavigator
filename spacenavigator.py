@@ -1,6 +1,5 @@
 from time import sleep
 import pywinusb.hid as hid
-import threading
 from collections import namedtuple
 import timeit
 
@@ -9,8 +8,18 @@ high_acc_clock = timeit.default_timer
 
 ## Simple HID code to read data from the 3dconnexion Space Navigator
 mappings={"y":[1, 1, 2], "x":[1, 3, 4], "z":[1,5,6], "roll":[2,1,2], "pitch":[2,3,4], "yaw":[2,5,6]}
-chan1_mappings = {k:v for k,v in mappings.iteritems() if v[0]==1}
-chan2_mappings = {k:v for k,v in mappings.iteritems() if v[0]==2}
+channel1_mappings = {k:v for k,v in mappings.iteritems() if v[0]==1}
+channel2_mappings = {k:v for k,v in mappings.iteritems() if v[0]==2}
+
+# the ID for the space navigator
+space_navigator_hid_id = [0x046d,0xc626]
+
+# _space_navigator_dict is a dictionary mapping [t,x,y,z,pitch,yaw,roll] to their latest values.
+# it is empty if the device has not been opened yet
+_space_navigator_dict = {}
+SpaceNavigator = namedtuple('SpaceNavigator', ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't'])
+_space_navigator = None
+_device = None
 
 # convert two 8 bit bytes to a signed 16 bit integer
 def byte_2(y1,y2):
@@ -19,22 +28,9 @@ def byte_2(y1,y2):
         x = -(65536-x)
     return x
     
-# state_3dx is a dictionary mapping [t,x,y,z,pitch,yaw,roll] to their latest values.
-# it is empty if the device has not been opened yet
-state_3dx = {}
-SpaceNavigator = namedtuple('SpaceNavigator', ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't'])
-state_tuple = None
-
-# make sure we don't have concurrent access to the current state
-state_lock = threading.Lock()
-
-# the ID for the space navigator
-cnx_hid_id = [0x046d,0xc626]
-
-_device = None
 
 def sample_handler(data, callback=None):
-    global state_tuple
+    global _space_navigator
     """
     Update the state based on the incoming data
     The HID data is in the format
@@ -54,27 +50,25 @@ def sample_handler(data, callback=None):
     Each movement of the device always causes two HID events, one
     with id 1 and one with id 2, to be generated, one after the other.
     
-    This function updates the global state state_3dx, giving values for each
+    This function updates the global state _space_navigator_dict, giving values for each
     axis [x,y,z,roll,pitch,yaw] in range [-1.0, 1.0]
     
     The timestamp (in fractional seconds since the start of the program)  is written as element "t"
     
     If callback is provided, it is called on with a copy of the current state dictionary    
     """
-    state_lock.acquire()
     if data[0]==1:
-        for name,(chan,b1,b2) in chan1_mappings.iteritems():
-            state_3dx[name] = byte_2(data[b1], data[b2])/350.0
+        for name,(chan,b1,b2) in channel1_mappings.iteritems():
+            _space_navigator_dict[name] = byte_2(data[b1], data[b2])/350.0
     else:
-        for name,(chan,b1,b2) in chan2_mappings.iteritems():
-            state_3dx[name] = byte_2(data[b1], data[b2])/350.0
-    state_3dx["t"] = high_acc_clock()
-    if len(state_3dx)==7:
-        state_tuple = SpaceNavigator(**state_3dx)
-    state_lock.release()
+        for name,(chan,b1,b2) in channel2_mappings.iteritems():
+            _space_navigator_dict[name] = byte_2(data[b1], data[b2])/350.0
+    _space_navigator_dict["t"] = high_acc_clock()
+    if len(_space_navigator_dict)==7:
+        _space_navigator = SpaceNavigator(**_space_navigator_dict)
     
     if callback:
-        callback(state_tuple)
+        callback(_space_navigator)
         
    
 
@@ -108,7 +102,7 @@ def open(callback=None):
     all_hids = hid.find_all_hid_devices()
     if all_hids:
         for index, device in enumerate(all_hids):
-            if device.vendor_id == cnx_hid_id[0] and device.product_id == cnx_hid_id[1]:
+            if device.vendor_id == space_navigator_hid_id[0] and device.product_id == space_navigator_hid_id[1]:
                 print("3Dconnexion SpaceNavigator found")                
                 device.open()
                 if callback:
