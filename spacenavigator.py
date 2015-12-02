@@ -7,7 +7,7 @@ import timeit
 high_acc_clock = timeit.default_timer
 
 ## Simple HID code to read data from the 3dconnexion Space Navigator
-mappings={"y":[1, 1, 2], "x":[1, 3, 4], "z":[1,5,6], "roll":[2,1,2], "pitch":[2,3,4], "yaw":[2,5,6], "button":[3,1,2]}
+mappings={"x":[1, 1, 2,1], "y":[1, 3, 4,-1], "z":[1,5,6,-1], "pitch":[2,1,2,-1], "roll":[2,3,4,-1], "yaw":[2,5,6,1], "button":[3,1,2,1]}
 channel1_mappings = {k:v for k,v in mappings.iteritems() if v[0]==1}
 channel2_mappings = {k:v for k,v in mappings.iteritems() if v[0]==2}
 
@@ -64,11 +64,11 @@ def callback_handler(data, callback=None, button_callback=None):
     
     button_pushed = False
     if data[0]==1:
-        for name,(chan,b1,b2) in channel1_mappings.iteritems():
-            _space_navigator_dict[name] = byte_2(data[b1], data[b2])/350.0
+        for name,(chan,b1,b2,flip) in channel1_mappings.iteritems():
+            _space_navigator_dict[name] = flip*byte_2(data[b1], data[b2])/350.0
     elif data[0]==2:
-        for name,(chan,b1,b2) in channel2_mappings.iteritems():
-            _space_navigator_dict[name] = byte_2(data[b1], data[b2])/350.0
+        for name,(chan,b1,b2,flip) in channel2_mappings.iteritems():
+            _space_navigator_dict[name] = flip*byte_2(data[b1], data[b2])/350.0
     elif data[0]==3:
         button_pushed = True
         _space_navigator_dict["button"] = data[1]
