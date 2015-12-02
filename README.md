@@ -5,15 +5,17 @@ Implements a simple interface to the 6 DoF 3Dconnexion [Space Navigator](http://
 
 Usage:
 
-  import spacenavigator
-  import time
-  
-  success = spacenavigator.open()
-  if success:
-    while 1:
-      state = spacenavigator.read()
-      print state.x, state.y, state.z
-      time.sleep(0.5)
+    import spacenavigator
+    import time
+    
+    success = spacenavigator.open()
+    if success:
+      while 1:
+        state = spacenavigator.read()
+        print state.x, state.y, state.z
+        time.sleep(0.5)
       
       
-State objects have 7 attributes: [t,x,y,z,roll,pitch,yaw]
+State objects have 7 attributes: [t,x,y,z,roll,pitch,yaw]. T is a timestamp in seconds since the script started. x,y,z are translations in the range [-1.0, 1.0] and roll, pitch, yaw are rotations in the range [-1.0, 1.0].
+
+
