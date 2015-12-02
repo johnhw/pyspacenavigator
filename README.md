@@ -18,6 +18,10 @@ Requires [pywinusb](https://pypi.python.org/pypi/pywinusb/) to access HID data -
         time.sleep(0.5)
       
 ## State objects      
-State objects have 7 attributes: [t,x,y,z,roll,pitch,yaw]. T is a timestamp in seconds since the script started. x,y,z are translations in the range [-1.0, 1.0] and roll, pitch, yaw are rotations in the range [-1.0, 1.0].
+State objects returned from read() have 7 attributes: [t,x,y,z,roll,pitch,yaw].
+
+* t: timestamp in seconds since the script started. 
+* x,y,z: translations in the range [-1.0, 1.0] 
+* roll, pitch, yaw: rotations in the range [-1.0, 1.0].
 
 
