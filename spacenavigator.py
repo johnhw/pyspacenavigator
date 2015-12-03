@@ -18,17 +18,16 @@ space_navigator_hid_id = [0x046d,0xc626]
 # it is empty if the device has not been opened yet
 _space_navigator_dict = {"button":0}
 SpaceNavigator = namedtuple('SpaceNavigator', ['t','x', 'y', 'z', 'roll', 'pitch', 'yaw', 'button'])
-_space_navigator = None
+_space_navigator = SpaceNavigator(-1,0,0,0,0,0,0,0)
 _device = None
 
 # convert two 8 bit bytes to a signed 16 bit integer
-def byte_2(y1,y2):
+def to_int16(y1,y2):
     x = (y1) | (y2<<8)
     if x>=32768:
         x = -(65536-x)
     return x
     
-
 def callback_handler(data, callback=None, button_callback=None):
     global _space_navigator
     """
@@ -65,10 +64,10 @@ def callback_handler(data, callback=None, button_callback=None):
     button_pushed = False
     if data[0]==1:
         for name,(chan,b1,b2,flip) in channel1_mappings.iteritems():
-            _space_navigator_dict[name] = flip*byte_2(data[b1], data[b2])/350.0
+            _space_navigator_dict[name] = flip * to_int16(data[b1], data[b2])/350.0
     elif data[0]==2:
         for name,(chan,b1,b2,flip) in channel2_mappings.iteritems():
-            _space_navigator_dict[name] = flip*byte_2(data[b1], data[b2])/350.0
+            _space_navigator_dict[name] = flip * to_int16(data[b1], data[b2])/350.0
     elif data[0]==3:
         button_pushed = True
         _space_navigator_dict["button"] = data[1]
@@ -106,18 +105,19 @@ def close():
   
 def read():
     """Return the current state of the navigation controller.
+    
     Returns:
-        state: {t,x,y,z,pitch,yaw,roll} dictionary
+        state: {t,x,y,z,pitch,yaw,roll,button} namedtuple
         None if the device is not open.
     """
-    return tuple_state
+    return _space_navigator
     
 def open(callback=None, button_callback=None):
     """
     Open the 3D space navigator device.
     
     Parameters:
-        callback: If callback is provided, it is called on each HID update with a copy of the current state dictionary   
+        callback: If callback is provided, it is called on each HID update with a copy of the current state namedtuple  
         button_callback: If button_callback is provided, it is called on each button push, with the arguments (state_tuple, button_state) 
     Returns:
         True if the device was opened successfully
@@ -146,7 +146,7 @@ def open(callback=None, button_callback=None):
 def print_state(state):
     # simple default printer callback
     if state:
-        print " ".join(["%4s %+.2f"%(k,getattr(state,k)) for k in ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't']])
+        print(" ".join(["%4s %+.2f"%(k,getattr(state,k)) for k in ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't']]))
         
 def toggle_led(state, button):
     # Switch on the led on left push, off on right push
@@ -158,7 +158,8 @@ def toggle_led(state, button):
 if __name__ == '__main__':
     open(callback=print_state, button_callback=toggle_led)
     set_led(0)
-    while 1:
+    while 1:        
+        print read()
         sleep(1)
     
         
