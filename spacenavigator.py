@@ -145,28 +145,40 @@ class DeviceSpec(object):
         if self.button_callback and button_pushed:            
             self.button_callback(self.tuple_state, self.tuple_state.button)
                       
-   
-# the ID for the space navigator        
+
+AxisSpec = namedtuple('AxisSpec', ['channel', 'byte1', 'byte2', 'scale'])
+ButtonSpec = namedtuple('ButtonSpec', ['channel', 'byte', 'left_shift'])
+                      
+# the IDs for the supported devices
+# Each ID maps a device name to a DeviceSpec object
 device_specs = {
     "SpaceNavigator":   DeviceSpec(name="SpaceNavigator", 
+                        # vendor ID and product ID
                         hid_id=[0x46d, 0xc626], 
-                        led_id=[0x8, 0x4b],
-    
+                        # LED HID usage code pair
+                        led_id=[0x8, 0x4b],    
+                        
                         # axis mappings are specified as:
                         # [channel, byte1, byte2, scale]; scale is usually just -1 or 1 and multiplies the result by this value 
-                        # byte1 and byte2 are indices into the HID array indicating the two bytes to read to form the value for this axis
-                        # For the SpaceNavigator, these are consecutive bytes following the channel number. 
                         # (but per-axis scaling can also be achieved by setting this value)
-                        mappings = {"x":[1, 1, 2,1], "y":[1, 3, 4,-1], "z":[1,5,6,-1], "pitch":[2,1,2,-1], "roll":[2,3,4,-1], "yaw":[2,5,6,1]},    
+                        # byte1 and byte2 are indices into the HID array indicating the two bytes to read to form the value for this axis
+                        # For the SpaceNavigator, these are consecutive bytes following the channel number.                         
+                        mappings = {"x":        AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+                                    "y":        AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+                                    "z":        AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+                                    "pitch":    AxisSpec(channel=2, byte1=1, byte2=2, scale=-1),
+                                    "roll":     AxisSpec(channel=2, byte1=3, byte2=4, scale=-1),
+                                    "yaw":      AxisSpec(channel=2, byte1=5, byte2=6, scale=1),                        
+                        },    
     
                         # button states are specified as:
                         # [channel, data byte, left bit shift to be applied]
-                        # If a message is received on the specified channel, the value of the data byte is applied
-                        button_mapping = [(3,1,0)],
+                        # If a message is received on the specified channel, the value of the data byte is set in the button bit array
+                        button_mapping = [ButtonSpec(channel=3, byte=1, left_shift=0)],
                         axis_scale = 350.0
                         ),        
     }
-
+    
 supported_devices = device_specs.keys()        
 _active_device = None
         
