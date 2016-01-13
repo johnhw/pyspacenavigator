@@ -89,33 +89,19 @@ class DeviceSpec(object):
     def process(self, data):
         """
         Update the state based on the incoming data
-        The HID data is in the format
-        [id, a, b, c, d, e, f]
-        each pair (a,b), (c,d), (e,f) is a 16 bit signed value representing the absolute device state [from -350 to 350]
         
-        if id==1, then the mapping is
-        (a,b) = y translation
-        (c,d) = x translation
-        (e,f) = z translation
-        
-        if id==2 then the mapping is
-        (a,b) = x tilting (roll)
-        (c,d) = y tilting (pitch)
-        (d,e) = z tilting (yaw)
-        
-        if id==3 then the mapping is
-        a = button. Bit 1 = button 1, bit 2 = button 2
-        
-        Each movement of the device always causes two HID events, one
-        with id 1 and one with id 2, to be generated, one after the other.
-        
-        This function updates the global state _space_navigator_dict, giving values for each
+        This function updates the state of the DeviceSpec object, giving values for each
         axis [x,y,z,roll,pitch,yaw] in range [-1.0, 1.0]
+        The state tuple is only set when all 6 DoF have been read correctly.
         
         The timestamp (in fractional seconds since the start of the program)  is written as element "t"
         
         If callback is provided, it is called on with a copy of the current state tuple.
         If button_callback is provided, it is called only on button state changes with the argument (state, button_state).
+        
+        Parameters:
+            data    The data for this HID event, as returned by the HID callback
+                        
         """
         
         button_pushed = False        
@@ -178,6 +164,29 @@ device_specs = {
                         axis_scale = 350.0
                         ),        
     }
+    
+    
+# [For the SpaceNavigator]
+# The HID data is in the format
+# [id, a, b, c, d, e, f]
+# each pair (a,b), (c,d), (e,f) is a 16 bit signed value representing the absolute device state [from -350 to 350]
+
+# if id==1, then the mapping is
+# (a,b) = y translation
+# (c,d) = x translation
+# (e,f) = z translation
+
+# if id==2 then the mapping is
+# (a,b) = x tilting (roll)
+# (c,d) = y tilting (pitch)
+# (d,e) = z tilting (yaw)
+
+# if id==3 then the mapping is
+# a = button. Bit 1 = button 1, bit 2 = button 2
+
+# Each movement of the device always causes two HID events, one
+# with id 1 and one with id 2, to be generated, one after the other.
+            
     
 supported_devices = device_specs.keys()        
 _active_device = None
