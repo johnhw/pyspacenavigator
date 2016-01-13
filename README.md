@@ -1,5 +1,5 @@
 # pyspacenavigator
-3Dconnexion Space Navigator in Python using raw HID (windows only)
+3Dconnexion Space Navigator in Python using raw HID (Windows only)
 
 Implements a simple interface to the 6 DoF 3Dconnexion [Space Navigator](http://www.3dconnexion.co.uk/products/spacemouse/spacenavigator.html) device.
 
@@ -47,15 +47,16 @@ State objects returned from read() have 7 attributes: [t,x,y,z,roll,pitch,yaw,bu
 open() returns a DeviceSpec object. If you have multiple 3Dconnexion devices, you can use the object-oriented API to access them individually.
 Each object has the following API, which functions exactly as the above API, but on a per-device basis:
 
-    open()
-    read()
-    close()
-    set_led()
+    dev.open()          Opens the connection (this is always called by the module-level open command, 
+                        so you should not need to use it unless you have called close())
+    dev.read()          Return the state of the device as namedtuple [t,x,y,z,roll,pitch,yaw,button]
+    dev.close()         Close this device
+    dev.set_led(state)  Set the state of the LED on the device to on (True) or off (False)
     
 There are also attributes:
     
-    connected       True if the device is connected, False otherwise
-    state           Convenience property which returns the same as read()
+    dev.connected       True if the device is connected, False otherwise
+    dev.state           Convenience property which returns the same value as read()
     
     
     
