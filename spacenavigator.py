@@ -8,6 +8,8 @@ import copy
 high_acc_clock = timeit.default_timer
 
 ## Simple HID code to read data from the 3dconnexion devices
+## TODO: does not support large numbers of buttons properly, because the bit mask keeps getting reset
+## (e.g. if buttons are sent on multiple data bytes)
 
 # convert two 8 bit bytes to a signed 16 bit integer
 def to_int16(y1,y2):
@@ -106,6 +108,7 @@ class DeviceSpec(object):
         """
         
         button_pushed = False
+        button_state = 0
     
         for name,(chan,b1,b2,flip) in self.mappings.iteritems():
             if data[0] == chan:
@@ -114,7 +117,11 @@ class DeviceSpec(object):
         for chan, byte, shift in self.button_mapping:
             if data[0] == chan:
                 button_pushed = True
-                self.dict_state["button"] = data[byte]
+                button_state |= data[byte] << shift
+                
+        # update the button state
+        if button_pushed:
+            self.dict_state["button"] = button_state 
             
         self.dict_state["t"] = high_acc_clock()
         
