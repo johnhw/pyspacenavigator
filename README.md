@@ -23,7 +23,7 @@ State objects returned from read() have 7 attributes: [t,x,y,z,roll,pitch,yaw,bu
 * t: timestamp in seconds since the script started. 
 * x,y,z: translations in the range [-1.0, 1.0] 
 * roll, pitch, yaw: rotations in the range [-1.0, 1.0].
-* button: bit 1: left button, bit 2: right button (e.g. 1=left, 2=right, 3=left+right, 0=none)
+* button: list of button states (0 or 1), in order specified in the device specifier
 
 ## API
     open(callback=None, button_callback=None)      

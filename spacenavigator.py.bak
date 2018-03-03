@@ -1,4 +1,4 @@
-
+from __future__ import print_function, division
 from time import sleep
 import pywinusb.hid as hid
 from collections import namedtuple
@@ -34,9 +34,8 @@ class DeviceSpec(object):
         self.button_mapping = button_mapping
         self.axis_scale = axis_scale        
         # initialise to a vector of 0s for each state
-        button_state = [0 for i in range(len(button_mapping))]
-        self.dict_state = {"buttons":button_state}
-        self.tuple_state = SpaceNavigator(-1,0,0,0,0,0,0,button_state)
+        self.dict_state = {"button":[0 for i in range(len(button_mapping))]}
+        self.tuple_state = SpaceNavigator(-1,0,0,0,0,0,0,0)
         # start in disconnected state
         self.device = None
         self.led_usage = hid.get_full_usage_id(self.led_id[0], self.led_id[1])
@@ -109,16 +108,16 @@ class DeviceSpec(object):
         """
         button_changed = False        
     
-        for name,(chan,b1,b2,flip) in self.mappings.items():
+        for name,(chan,b1,b2,flip) in self.mappings.iteritems():
             if data[0] == chan:
                 self.dict_state[name] = flip * to_int16(data[b1], data[b2])/float(self.axis_scale)
                 
-        for button_index, (chan, byte, bit) in enumerate(self.button_mapping):
+        for chan, byte, bit, button_index in self.button_mapping:
             if data[0] == chan:
                 button_changed = True               
                 # update the button vector
                 mask = 1<<bit
-                self.dict_state["buttons"][button_index] = 1 if (data[byte] & mask) != 0 else 0                                
+                self.dict_state["button"][button_index] = 1 if (data[byte] & mask) != 0 else 0                                
                                         
         self.dict_state["t"] = high_acc_clock()
         
@@ -145,7 +144,7 @@ AxisSpec = namedtuple('AxisSpec', ['channel', 'byte1', 'byte2', 'scale'])
 # button states are specified as:
 # [channel, data byte,  bit of byte, index to write to]
 # If a message is received on the specified channel, the value of the data byte is set in the button bit array                       
-ButtonSpec = namedtuple('ButtonSpec', ['channel', 'byte', 'bit'])
+ButtonSpec = namedtuple('ButtonSpec', ['channel', 'byte', 'bit', 'button_index'])
                       
 # the IDs for the supported devices
 # Each ID maps a device name to a DeviceSpec object
@@ -164,7 +163,7 @@ device_specs = {
                                         "yaw":      AxisSpec(channel=2, byte1=5, byte2=6, scale=1),                        
                                     },    
     
-                        button_mapping = [ButtonSpec(channel=3, byte=1, bit=0)],
+                        button_mapping = [ButtonSpec(channel=3, byte=1, left_shift=0)],
                         axis_scale = 350.0
                         ),        
     }
@@ -192,7 +191,7 @@ device_specs = {
 # with id 1 and one with id 2, to be generated, one after the other.
             
     
-supported_devices = list(device_specs.keys())        
+supported_devices = device_specs.keys()        
 _active_device = None
         
 def close():
@@ -222,7 +221,7 @@ def list_devices():
     all_hids = hid.find_all_hid_devices()
     if all_hids:
         for index, device in enumerate(all_hids):
-            for device_name,spec in device_specs.items():
+            for device_name,spec in device_specs.iteritems():
                 if device.vendor_id == spec.hid_id[0] and device.product_id == spec.hid_id[1]:
                     devices.append(device_name)                        
     return devices
@@ -292,13 +291,11 @@ def set_led(state):
         _active_device.set_led(state)
 
 if __name__ == '__main__':
-
-    d = device_specs["SpaceNavigator"] 
     print("Devices found:\n\t%s" % "\n\t".join(list_devices()))
-    dev = open(callback=print_state, button_callback=toggle_led)
-    dev.set_led(0)    
+    open(callback=print_state, button_callback=toggle_led)
+    set_led(0)
     while 1:        
-        print(dev.read())
+        print(read())
         sleep(1)
     
         
