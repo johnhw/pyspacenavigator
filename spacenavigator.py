@@ -5,7 +5,6 @@ from collections import namedtuple
 import timeit
 import copy
 
-
 # current version number
 __version__=  "0.1.6"
 
@@ -292,13 +291,13 @@ def set_led(state):
         _active_device.set_led(state)
 
 if __name__ == '__main__':
-
     d = device_specs["SpaceNavigator"] 
     print("Devices found:\n\t%s" % "\n\t".join(list_devices()))
     dev = open(callback=print_state, button_callback=toggle_led)
-    dev.set_led(0)    
-    while 1:        
-        print(dev.read())
-        sleep(1)
-    
+    if dev:
+        dev.set_led(0)    
+        while 1:        
+            print(dev.read())
+            sleep(1)
+        
         
