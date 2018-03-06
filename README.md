@@ -14,7 +14,7 @@ Requires [pywinusb](https://pypi.python.org/pypi/pywinusb/) to access HID data -
     if success:
       while 1:
         state = spacenavigator.read()
-        print state.x, state.y, state.z
+        print(state.x, state.y, state.z)
         time.sleep(0.5)
       
 ## State objects      

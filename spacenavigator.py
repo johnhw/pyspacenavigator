@@ -131,7 +131,7 @@ class DeviceSpec(object):
         
         # only call the button callback if the button state actually changed
         if self.button_callback and button_changed:            
-            self.button_callback(self.tuple_state, self.tuple_state.button)
+            self.button_callback(self.tuple_state, self.tuple_state.buttons)
                       
 # axis mappings are specified as:
 # [channel, byte1, byte2, scale]; scale is usually just -1 or 1 and multiplies the result by this value 
@@ -163,9 +163,40 @@ device_specs = {
                                         "yaw":      AxisSpec(channel=2, byte1=5, byte2=6, scale=1),                        
                                     },    
     
-                        button_mapping = [ButtonSpec(channel=3, byte=1, bit=0)],
+                        button_mapping = [ButtonSpec(channel=3, byte=1, bit=0),ButtonSpec(channel=3, byte=1, bit=1)],
                         axis_scale = 350.0
-                        ),        
+                        ),
+    "SpaceMouse Pro Wireless":   DeviceSpec(name="SpaceMouse Pro Wireless", 
+                        # vendor ID and product ID
+                        hid_id=[0x256f, 0xc632], 
+                        # LED HID usage code pair
+                        led_id=[0x8, 0x4b],    
+                        
+                        mappings = {    "x":        AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+                                        "y":        AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+                                        "z":        AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+                                        "pitch":    AxisSpec(channel=1, byte1=7, byte2=8, scale=-1),
+                                        "roll":     AxisSpec(channel=1, byte1=9, byte2=10,scale=-1),
+                                        "yaw":      AxisSpec(channel=1, byte1=11,byte2=12,scale=1),                        
+                                    },    
+    
+                        button_mapping = [ButtonSpec(channel=3, byte=1, bit=0), # MENU
+                                          ButtonSpec(channel=3, byte=3, bit=7), # ALT
+                                          ButtonSpec(channel=3, byte=4, bit=1), # CTRL
+                                          ButtonSpec(channel=3, byte=4, bit=0), # SHIFT
+                                          ButtonSpec(channel=3, byte=3, bit=6), # ESC
+                                          ButtonSpec(channel=3, byte=2, bit=4), # 1
+                                          ButtonSpec(channel=3, byte=2, bit=5), # 2
+                                          ButtonSpec(channel=3, byte=2, bit=6), # 3
+                                          ButtonSpec(channel=3, byte=2, bit=7), # 4
+                                          ButtonSpec(channel=3, byte=2, bit=0), # ROLL CLOCKWISE
+                                          ButtonSpec(channel=3, byte=1, bit=2), # TOP
+                                          ButtonSpec(channel=3, byte=4, bit=2), # ROTATION
+                                          ButtonSpec(channel=3, byte=1, bit=5), # FRONT
+                                          ButtonSpec(channel=3, byte=1, bit=4), # REAR
+                                          ButtonSpec(channel=3, byte=1, bit=1)],# FIT
+                        axis_scale = 350.0
+                        ),
     }
     
     
@@ -279,11 +310,12 @@ def print_state(state):
     if state:
         print(" ".join(["%4s %+.2f"%(k,getattr(state,k)) for k in ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't']]))
         
-def toggle_led(state, button):
+def toggle_led(state, buttons):
+    print("".join(["buttons=",str(buttons)]))
     # Switch on the led on left push, off on right push
-    if button&1:
+    if buttons[0] == 1:
         set_led(1)
-    if button&2:
+    if buttons[1] == 1:
         set_led(0)
         
 def set_led(state):    
