@@ -41,6 +41,17 @@ class DeviceSpec(object):
         self.led_usage = hid.get_full_usage_id(self.led_id[0], self.led_id[1])
         self.callback = None
         self.button_callback = None
+
+    def describe_connection(self):
+        """Return string representation of the device, including
+        the connection state"""
+        if self.device==None:
+            return "%s [disconnected]" % (self.name)
+        else:
+            return "%s connected to %s %s version: %s [serial: %s]" % (self.name, 
+                self.vendor_name, self.product_name,
+                self.version_number, self.serial_number)
+
        
     @property
     def connected(self):
@@ -149,7 +160,8 @@ ButtonSpec = namedtuple('ButtonSpec', ['channel', 'byte', 'bit'])
 # the IDs for the supported devices
 # Each ID maps a device name to a DeviceSpec object
 device_specs = {
-    "SpaceNavigator":   DeviceSpec(name="SpaceNavigator", 
+    "SpaceNavigator":   
+    DeviceSpec(name="SpaceNavigator", 
                         # vendor ID and product ID
                         hid_id=[0x46d, 0xc626], 
                         # LED HID usage code pair
@@ -161,12 +173,12 @@ device_specs = {
                                         "pitch":    AxisSpec(channel=2, byte1=1, byte2=2, scale=-1),
                                         "roll":     AxisSpec(channel=2, byte1=3, byte2=4, scale=-1),
                                         "yaw":      AxisSpec(channel=2, byte1=5, byte2=6, scale=1),                        
-                                    },    
-    
+                                    },        
                         button_mapping = [ButtonSpec(channel=3, byte=1, bit=0),ButtonSpec(channel=3, byte=1, bit=1)],
                         axis_scale = 350.0
                         ),
-    "SpaceMouse Pro Wireless":   DeviceSpec(name="SpaceMouse Pro Wireless", 
+    "SpaceMouse Pro Wireless":   
+    DeviceSpec(name="SpaceMouse Pro Wireless", 
                         # vendor ID and product ID
                         hid_id=[0x256f, 0xc632], 
                         # LED HID usage code pair
@@ -291,6 +303,12 @@ def open(callback=None, button_callback=None, device=None):
                     # create a copy of the device specification
                     new_device = copy.deepcopy(spec)
                     new_device.device = dev
+                    # copy in product details
+                    new_device.product_name = dev.product_name
+                    new_device.vendor_name = dev.vendor_name
+                    new_device.version_number = dev.version_number
+                    # doesn't seem to work on 3dconnexion devices...
+                    new_device.serial_number = dev.serial_number                                 
                     # set the callbacks
                     new_device.callback = callback
                     new_device.button_callback = button_callback
@@ -326,10 +344,10 @@ if __name__ == '__main__':
     d = device_specs["SpaceNavigator"] 
     print("Devices found:\n\t%s" % "\n\t".join(list_devices()))
     dev = open(callback=print_state, button_callback=toggle_led)
+    print(dev.describe_connection())
     if dev:
         dev.set_led(0)    
-        while 1:        
-            print(dev.read())
+        while 1:                    
             sleep(1)
         
         
