@@ -4,12 +4,34 @@ import pywinusb.hid as hid
 from collections import namedtuple
 import timeit
 import copy
+from pywinusb.hid import usage_pages, helpers, winapi    
 
 # current version number
 __version__=  "0.1.6"
 
 # clock for timing
 high_acc_clock = timeit.default_timer
+
+GENERIC_PAGE = 0x1
+BUTTON_PAGE= 0x9
+LED_PAGE = 0x8
+MULTI_AXIS_CONTROLLER_CAP = 0x8
+
+HID_AXIS_MAP = {0x30:"x", 0x31:"y", 0x32:"z", 0x33:"roll", 0x34:"pitch", 0x35:"yaw"}
+
+# axis mappings are specified as:
+# [channel, byte1, byte2, scale]; scale is usually just -1 or 1 and multiplies the result by this value 
+# (but per-axis scaling can also be achieved by setting this value)
+# byte1 and byte2 are indices into the HID array indicating the two bytes to read to form the value for this axis
+# For the SpaceNavigator, these are consecutive bytes following the channel number.                         
+AxisSpec = namedtuple('AxisSpec', ['channel', 'byte1', 'byte2', 'scale'])
+
+
+# button states are specified as:
+# [channel, data byte,  bit of byte, index to write to]
+# If a message is received on the specified channel, the value of the data byte is set in the button bit array                       
+ButtonSpec = namedtuple('ButtonSpec', ['channel', 'byte', 'bit'])
+                      
 
 ## Simple HID code to read data from the 3dconnexion devices
 
@@ -33,12 +55,10 @@ class DeviceSpec(object):
         self.button_mapping = button_mapping
         self.axis_scale = axis_scale        
         # initialise to a vector of 0s for each state
-        button_state = [0 for i in range(len(button_mapping))]
-        self.dict_state = {"buttons":button_state}
-        self.tuple_state = SpaceNavigator(-1,0,0,0,0,0,0,button_state)
+        self.dict_state = {"buttons":[]}
+        self.tuple_state = SpaceNavigator(-1,0,0,0,0,0,0,[])
         # start in disconnected state
-        self.device = None
-        self.led_usage = hid.get_full_usage_id(self.led_id[0], self.led_id[1])
+        self.device = None        
         self.callback = None
         self.button_callback = None
 
@@ -70,8 +90,82 @@ class DeviceSpec(object):
     def open(self):
         """Open a connection to the device, if possible"""
         if self.device:
-            self.device.open()
-       
+            self.device.open()        
+        # copy in product details
+        self.product_name = self.device.product_name
+        self.vendor_name = self.device.vendor_name
+        self.version_number = self.device.version_number
+        # doesn't seem to work on 3dconnexion devices...
+        # serial number will be a byte string, we convert to a hex id                    
+        self.serial_number = "".join(["%02X"%ord(char) for char in self.device.serial_number])
+        self.analyse_usages()
+                   
+    def analyse_usages(self):
+        """Work out the axis, button and LED mappings from the usage data"""
+        if self.device.hid_caps.usage_page==GENERIC_PAGE and self.device.hid_caps.usage_page==MULTI_AXIS_CONTROLLER_CAP:
+            print("Found multi-axis device")            
+            
+        inputs = self.device.usages_storage.get(winapi.HidP_Input, [])
+        for hid_input in inputs:
+            all_items = hid_input.inspect()            
+            
+            usage_page = all_items["usage_page"]       
+            print(usage_page)
+            if usage_page==BUTTON_PAGE:                        
+                # buttons are usage ranges
+                for usage in range(all_items["usage_min"], all_items["usage_max"]+1):
+                    usage_dev = usage_pages.HidUsage(usage_page, usage)
+                    button_handler = lambda value, id, button_id=usage : self.button_handler(button_id, value)
+                    self.device.add_event_handler(hid.get_full_usage_id(usage_page, usage), button_handler)                                                                        
+                    self.dict_state["buttons"]  += [0]
+                    
+
+            if "usage" in all_items:
+                usage = all_items["usage"]
+                # these are axes to be mapped     
+                if usage_page==GENERIC_PAGE:                             
+                        usage_dev = usage_pages.HidUsage(usage_page, usage)
+                        if usage in HID_AXIS_MAP:
+                            # get the name and range of this axis
+                            axis_name = HID_AXIS_MAP[usage]
+                            axis_min = all_items["logical_min"]
+                            axis_max = all_items["logical_max"]                            
+                            axis_handler = lambda value, id, axis_name=axis_name,  axis_min=axis_min, axis_max=axis_max, : self.axis_handler(axis_name, value, axis_min, axis_max)
+                            self.device.add_event_handler(hid.get_full_usage_id(usage_page, usage), axis_handler)                                                                        
+                
+                
+            
+        # outputs (just LEDs)
+        outputs = self.device.usages_storage.get(winapi.HidP_Output, [])
+        for hid_output in outputs:
+            all_items = hid_output.inspect()
+            usage_page = all_items["usage_page"]            
+            if usage_page == LED_PAGE:                
+                # found an LED, map it (just one LED assumed)
+                self.led_usage = hid.get_full_usage_id(usage_page, all_items["usage"])
+                
+        
+    def button_handler(self, button_id,  state):        
+        self.dict_state["buttons"][button_id] = state        
+        if self.button_callback:            
+            self.button_callback(self.tuple_state, self.tuple_state.buttons)
+
+    def axis_handler(self, axis, value, min_val, max_val):
+        # these are really signed 16 bit ints
+        if value>32767:
+            value = -(65536-value)
+        value = (float(value) - min_val) / (max_val-min_val)        
+        self.dict_state["t"] = high_acc_clock()
+        self.dict_state[axis] = value
+
+        # only call the callback on the x axis
+        # as the device outputs all axes in a round-robin fashion
+        if axis=="x":
+            if len(self.dict_state)==8:
+                self.tuple_state = SpaceNavigator(**self.dict_state)
+            if self.callback:
+                self.callback(self.tuple_state)   
+
     def set_led(self, state):        
         """Set the LED state to state (True or False)"""
         if self.connected:            
@@ -144,19 +238,7 @@ class DeviceSpec(object):
         if self.button_callback and button_changed:            
             self.button_callback(self.tuple_state, self.tuple_state.buttons)
                       
-# axis mappings are specified as:
-# [channel, byte1, byte2, scale]; scale is usually just -1 or 1 and multiplies the result by this value 
-# (but per-axis scaling can also be achieved by setting this value)
-# byte1 and byte2 are indices into the HID array indicating the two bytes to read to form the value for this axis
-# For the SpaceNavigator, these are consecutive bytes following the channel number.                         
-AxisSpec = namedtuple('AxisSpec', ['channel', 'byte1', 'byte2', 'scale'])
 
-
-# button states are specified as:
-# [channel, data byte,  bit of byte, index to write to]
-# If a message is received on the specified channel, the value of the data byte is set in the button bit array                       
-ButtonSpec = namedtuple('ButtonSpec', ['channel', 'byte', 'bit'])
-                      
 # the IDs for the supported devices
 # Each ID maps a device name to a DeviceSpec object
 device_specs = {
@@ -269,7 +351,7 @@ def list_devices():
                     devices.append(device_name)                        
     return devices
     
-    
+
 def open(callback=None, button_callback=None, device=None):
     """
     Open a 3D space navigator device. Makes this device the current active device, which enables the module-level read() and close()
@@ -303,18 +385,14 @@ def open(callback=None, button_callback=None, device=None):
                     # create a copy of the device specification
                     new_device = copy.deepcopy(spec)
                     new_device.device = dev
-                    # copy in product details
-                    new_device.product_name = dev.product_name
-                    new_device.vendor_name = dev.vendor_name
-                    new_device.version_number = dev.version_number
-                    # doesn't seem to work on 3dconnexion devices...
-                    new_device.serial_number = dev.serial_number                                 
+                    
+                   
                     # set the callbacks
                     new_device.callback = callback
                     new_device.button_callback = button_callback
                     # open the device and set the data handler
                     new_device.open()                    
-                    dev.set_raw_data_handler(lambda x:new_device.process(x))   
+                    #dev.set_raw_data_handler(lambda x:new_device.process(x))   
                     _active_device = new_device
                     return new_device
         print("No supported devices found")
@@ -345,9 +423,13 @@ if __name__ == '__main__':
     print("Devices found:\n\t%s" % "\n\t".join(list_devices()))
     dev = open(callback=print_state, button_callback=toggle_led)
     print(dev.describe_connection())
+    
     if dev:
         dev.set_led(0)    
         while 1:                    
             sleep(1)
+            dev.set_led(1)    
+            sleep(1)
+            dev.set_led(0)    
         
         
