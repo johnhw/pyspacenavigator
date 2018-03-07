@@ -17,7 +17,7 @@ BUTTON_PAGE= 0x9
 LED_PAGE = 0x8
 MULTI_AXIS_CONTROLLER_CAP = 0x8
 
-HID_AXIS_MAP = {0x30:"x", 0x31:"y", 0x32:"z", 0x33:"roll", 0x34:"pitch", 0x35:"yaw"}
+HID_AXIS_MAP = {0x30:"x", 0x31:"y", 0x32:"z", 0x34:"roll", 0x33:"pitch", 0x35:"yaw"}
 
 # axis mappings are specified as:
 # [channel, byte1, byte2, scale]; scale is usually just -1 or 1 and multiplies the result by this value 
@@ -47,13 +47,9 @@ SpaceNavigator = namedtuple('SpaceNavigator', ['t','x', 'y', 'z', 'roll', 'pitch
 
 class DeviceSpec(object):
     """Holds the specification of a single 3Dconnexion device"""
-    def __init__(self, name, hid_id, led_id, mappings, button_mapping, axis_scale=350.0):
+    def __init__(self, name):
         self.name = name
-        self.hid_id = hid_id
-        self.led_id = led_id
-        self.mappings = mappings
-        self.button_mapping = button_mapping
-        self.axis_scale = axis_scale        
+       
         # initialise to a vector of 0s for each state
         self.dict_state = {"buttons":[]}
         self.tuple_state = SpaceNavigator(-1,0,0,0,0,0,0,[])
@@ -113,11 +109,13 @@ class DeviceSpec(object):
             print(usage_page)
             if usage_page==BUTTON_PAGE:                        
                 # buttons are usage ranges
+                self.dict_state["buttons"]  += [0 for i in range(all_items["usage_max"]+1-all_items["usage_min"])]
                 for usage in range(all_items["usage_min"], all_items["usage_max"]+1):
-                    usage_dev = usage_pages.HidUsage(usage_page, usage)
-                    button_handler = lambda value, id, button_id=usage : self.button_handler(button_id, value)
-                    self.device.add_event_handler(hid.get_full_usage_id(usage_page, usage), button_handler)                                                                        
-                    self.dict_state["buttons"]  += [0]
+                    button_handler = lambda value, id, button_id=usage-1 : self.button_handler(button_id, value)
+                    self.device.add_event_handler(hid.get_full_usage_id(usage_page, usage), button_handler, aux_data=True)                    
+                    
+                print(all_items)
+                
                     
 
             if "usage" in all_items:
@@ -145,7 +143,8 @@ class DeviceSpec(object):
                 self.led_usage = hid.get_full_usage_id(usage_page, all_items["usage"])
                 
         
-    def button_handler(self, button_id,  state):        
+    def button_handler(self, button_id,  state):      
+        print(button_id, state)  
         self.dict_state["buttons"][button_id] = state        
         if self.button_callback:            
             self.button_callback(self.tuple_state, self.tuple_state.buttons)
@@ -156,7 +155,8 @@ class DeviceSpec(object):
             value = -(65536-value)
         value = (float(value) - min_val) / (max_val-min_val)        
         self.dict_state["t"] = high_acc_clock()
-        self.dict_state[axis] = value
+        # scale to -1, 1 range
+        self.dict_state[axis] = 2*(value-0.5)
 
         # only call the callback on the x axis
         # as the device outputs all axes in a round-robin fashion
@@ -194,129 +194,11 @@ class DeviceSpec(object):
         else:
             return None
             
-    def process(self, data):
-        """
-        Update the state based on the incoming data
-        
-        This function updates the state of the DeviceSpec object, giving values for each
-        axis [x,y,z,roll,pitch,yaw] in range [-1.0, 1.0]
-        The state tuple is only set when all 6 DoF have been read correctly.
-        
-        The timestamp (in fractional seconds since the start of the program)  is written as element "t"
-        
-        If callback is provided, it is called on with a copy of the current state tuple.
-        If button_callback is provided, it is called only on button state changes with the argument (state, button_state).
-        
-        Parameters:
-            data    The data for this HID event, as returned by the HID callback
-                        
-        """
-        button_changed = False        
-    
-        for name,(chan,b1,b2,flip) in self.mappings.items():
-            if data[0] == chan:
-                self.dict_state[name] = flip * to_int16(data[b1], data[b2])/float(self.axis_scale)
-                
-        for button_index, (chan, byte, bit) in enumerate(self.button_mapping):
-            if data[0] == chan:
-                button_changed = True               
-                # update the button vector
-                mask = 1<<bit
-                self.dict_state["buttons"][button_index] = 1 if (data[byte] & mask) != 0 else 0                                
-                                        
-        self.dict_state["t"] = high_acc_clock()
-        
-        # must receive both parts of the 6DOF state before we return the state dictionary
-        if len(self.dict_state)==8:
-            self.tuple_state = SpaceNavigator(**self.dict_state)
-        
-        # call any attached callbacks
-        if self.callback:
-            self.callback(self.tuple_state)                        
-        
-        # only call the button callback if the button state actually changed
-        if self.button_callback and button_changed:            
-            self.button_callback(self.tuple_state, self.tuple_state.buttons)
-                      
+   
 
-# the IDs for the supported devices
-# Each ID maps a device name to a DeviceSpec object
-device_specs = {
-    "SpaceNavigator":   
-    DeviceSpec(name="SpaceNavigator", 
-                        # vendor ID and product ID
-                        hid_id=[0x46d, 0xc626], 
-                        # LED HID usage code pair
-                        led_id=[0x8, 0x4b],    
-                        
-                        mappings = {    "x":        AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
-                                        "y":        AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
-                                        "z":        AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
-                                        "pitch":    AxisSpec(channel=2, byte1=1, byte2=2, scale=-1),
-                                        "roll":     AxisSpec(channel=2, byte1=3, byte2=4, scale=-1),
-                                        "yaw":      AxisSpec(channel=2, byte1=5, byte2=6, scale=1),                        
-                                    },        
-                        button_mapping = [ButtonSpec(channel=3, byte=1, bit=0),ButtonSpec(channel=3, byte=1, bit=1)],
-                        axis_scale = 350.0
-                        ),
-    "SpaceMouse Pro Wireless":   
-    DeviceSpec(name="SpaceMouse Pro Wireless", 
-                        # vendor ID and product ID
-                        hid_id=[0x256f, 0xc632], 
-                        # LED HID usage code pair
-                        led_id=[0x8, 0x4b],    
-                        
-                        mappings = {    "x":        AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
-                                        "y":        AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
-                                        "z":        AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
-                                        "pitch":    AxisSpec(channel=1, byte1=7, byte2=8, scale=-1),
-                                        "roll":     AxisSpec(channel=1, byte1=9, byte2=10,scale=-1),
-                                        "yaw":      AxisSpec(channel=1, byte1=11,byte2=12,scale=1),                        
-                                    },    
-    
-                        button_mapping = [ButtonSpec(channel=3, byte=1, bit=0), # MENU
-                                          ButtonSpec(channel=3, byte=3, bit=7), # ALT
-                                          ButtonSpec(channel=3, byte=4, bit=1), # CTRL
-                                          ButtonSpec(channel=3, byte=4, bit=0), # SHIFT
-                                          ButtonSpec(channel=3, byte=3, bit=6), # ESC
-                                          ButtonSpec(channel=3, byte=2, bit=4), # 1
-                                          ButtonSpec(channel=3, byte=2, bit=5), # 2
-                                          ButtonSpec(channel=3, byte=2, bit=6), # 3
-                                          ButtonSpec(channel=3, byte=2, bit=7), # 4
-                                          ButtonSpec(channel=3, byte=2, bit=0), # ROLL CLOCKWISE
-                                          ButtonSpec(channel=3, byte=1, bit=2), # TOP
-                                          ButtonSpec(channel=3, byte=4, bit=2), # ROTATION
-                                          ButtonSpec(channel=3, byte=1, bit=5), # FRONT
-                                          ButtonSpec(channel=3, byte=1, bit=4), # REAR
-                                          ButtonSpec(channel=3, byte=1, bit=1)],# FIT
-                        axis_scale = 350.0
-                        ),
-    }
-    
-    
-# [For the SpaceNavigator]
-# The HID data is in the format
-# [id, a, b, c, d, e, f]
-# each pair (a,b), (c,d), (e,f) is a 16 bit signed value representing the absolute device state [from -350 to 350]
 
-# if id==1, then the mapping is
-# (a,b) = y translation
-# (c,d) = x translation
-# (e,f) = z translation
+supported_devices = ["SpaceNavigator", "SpaceMouse Pro Wireless"]
 
-# if id==2 then the mapping is
-# (a,b) = x tilting (roll)
-# (c,d) = y tilting (pitch)
-# (d,e) = z tilting (yaw)
-
-# if id==3 then the mapping is
-# a = button. Bit 1 = button 1, bit 2 = button 2
-
-# Each movement of the device always causes two HID events, one
-# with id 1 and one with id 2, to be generated, one after the other.
-            
-    
-supported_devices = list(device_specs.keys())        
 _active_device = None
         
 def close():
@@ -346,9 +228,8 @@ def list_devices():
     all_hids = hid.find_all_hid_devices()
     if all_hids:
         for index, device in enumerate(all_hids):
-            for device_name,spec in device_specs.items():
-                if device.vendor_id == spec.hid_id[0] and device.product_id == spec.hid_id[1]:
-                    devices.append(device_name)                        
+            if device.product_name in supported_devices:
+                devices.append(device.product_name)                        
     return devices
     
 
@@ -379,14 +260,12 @@ def open(callback=None, button_callback=None, device=None):
     all_hids = hid.find_all_hid_devices()
     if all_hids:
         for index, dev in enumerate(all_hids):
-                spec = device_specs[device]
-                if dev.vendor_id == spec.hid_id[0] and dev.product_id == spec.hid_id[1]:
+                
+                if dev.product_name == device:
                     print("%s found" % device)
                     # create a copy of the device specification
-                    new_device = copy.deepcopy(spec)
-                    new_device.device = dev
-                    
-                   
+                    new_device = DeviceSpec(device)
+                    new_device.device = dev                                       
                     # set the callbacks
                     new_device.callback = callback
                     new_device.button_callback = button_callback
@@ -394,7 +273,7 @@ def open(callback=None, button_callback=None, device=None):
                     new_device.open()                    
                     #dev.set_raw_data_handler(lambda x:new_device.process(x))   
                     _active_device = new_device
-                    return new_device
+                    return new_device                    
         print("No supported devices found")
         return None
     else:
@@ -403,11 +282,13 @@ def open(callback=None, button_callback=None, device=None):
                             
 def print_state(state):
     # simple default printer callback
+    return
     if state:
         print(" ".join(["%4s %+.2f"%(k,getattr(state,k)) for k in ['x', 'y', 'z', 'roll', 'pitch', 'yaw', 't']]))
         
 def toggle_led(state, buttons):
-    print("".join(["buttons=",str(buttons)]))
+    print(buttons)
+    return
     # Switch on the led on left push, off on right push
     if buttons[0] == 1:
         set_led(1)
@@ -419,7 +300,7 @@ def set_led(state):
         _active_device.set_led(state)
 
 if __name__ == '__main__':
-    d = device_specs["SpaceNavigator"] 
+    
     print("Devices found:\n\t%s" % "\n\t".join(list_devices()))
     dev = open(callback=print_state, button_callback=toggle_led)
     print(dev.describe_connection())
@@ -428,8 +309,6 @@ if __name__ == '__main__':
         dev.set_led(0)    
         while 1:                    
             sleep(1)
-            dev.set_led(1)    
-            sleep(1)
-            dev.set_led(0)    
+            
         
         
