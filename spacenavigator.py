@@ -64,9 +64,7 @@ class DeviceSpec(object):
         if self.device==None:
             return "%s [disconnected]" % (self.name)
         else:
-            return "%s connected to %s %s version: %s [serial: %s]" % (self.name, 
-                self.vendor_name, self.product_name,
-                self.version_number, self.serial_number)
+            return "%s [serial: %s]" % (self.device, self.serial_number)
 
        
     @property
@@ -87,10 +85,6 @@ class DeviceSpec(object):
         """Open a connection to the device, if possible"""
         if self.device:
             self.device.open()        
-        # copy in product details
-        self.product_name = self.device.product_name
-        self.vendor_name = self.device.vendor_name
-        self.version_number = self.device.version_number
         # doesn't seem to work on 3dconnexion devices...
         # serial number will be a byte string, we convert to a hex id                    
         self.serial_number = "".join(["%02X"%ord(char) for char in self.device.serial_number])
@@ -106,13 +100,13 @@ class DeviceSpec(object):
             all_items = hid_input.inspect()            
             
             usage_page = all_items["usage_page"]       
-            print(usage_page)
+            
             if usage_page==BUTTON_PAGE:                        
                 # buttons are usage ranges
                 self.dict_state["buttons"]  += [0 for i in range(all_items["usage_max"]+1-all_items["usage_min"])]
-                for usage in range(all_items["usage_min"], all_items["usage_max"]+1):
-                    button_handler = lambda value, id, button_id=usage-1 : self.button_handler(button_id, value)
-                    self.device.add_event_handler(hid.get_full_usage_id(usage_page, usage), button_handler, aux_data=True)                    
+                
+                button_handler = lambda value, id: self.button_handler(0, value)
+                self.device.add_event_handler(hid.get_full_usage_id(usage_page, all_items["usage_min"]), button_handler)                    
                     
                 print(all_items)
                 
