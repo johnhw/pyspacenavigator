@@ -7,7 +7,7 @@ import copy
 from pywinusb.hid import usage_pages, helpers, winapi    
 
 # current version number
-__version__=  "0.1.6"
+__version__=  "0.2.1"
 
 # clock for timing
 high_acc_clock = timeit.default_timer
