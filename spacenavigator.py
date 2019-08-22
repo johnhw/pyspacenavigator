@@ -154,7 +154,7 @@ class DeviceSpec(object):
         # these are really signed 16 bit ints
         if value>32767:
             value = -(65536-value)
-        value = (float(value) - min_val) / (max_val-min_val)        
+        value = float(value) / (max_val-min_val)
         self.dict_state["t"] = high_acc_clock()
         self.dict_state[axis] = value
 
