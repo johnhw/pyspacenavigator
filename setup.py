@@ -8,7 +8,7 @@ setup(
     author="John Williamson",
     author_email="johnhw@gmail.com",
     url="https://github.com/johnhw/pyspacenavigator",  # use the URL to the github repo
-    download_url="https://github.com/johnhw/pyspacenavigator/tarball/0.2.1",
+    download_url="https://github.com/johnhw/pyspacenavigator/tarball/0.2.2",
     keywords=["spacenavigator", "3d", "6 DoF", "HID"],
     py_modules=["spacenavigator"],
     classifiers=[],
