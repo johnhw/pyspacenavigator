@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name="spacenavigator",
     # packages = ['spacenavigator'], # this must be the same as the name above
-    version="0.2.1",
+    version="0.2.2",
     description="Python interface to the 3DConnexion Space Navigator",
     author="John Williamson",
     author_email="johnhw@gmail.com",
