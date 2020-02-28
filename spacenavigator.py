@@ -116,7 +116,7 @@ class DeviceSpec(object):
     @property
     def state(self):
         """Return the current value of read()
-        
+
         Returns: state: {t,x,y,z,pitch,yaw,roll,button} namedtuple
                 None if the device is not open.
         """
@@ -152,8 +152,8 @@ class DeviceSpec(object):
             self.device = None
 
     def read(self):
-        """Return the current state of this navigation controller.    
-        
+        """Return the current state of this navigation controller.
+
         Returns:
             state: {t,x,y,z,pitch,yaw,roll,button} namedtuple
             None if the device is not open.
@@ -166,19 +166,19 @@ class DeviceSpec(object):
     def process(self, data):
         """
         Update the state based on the incoming data
-        
+
         This function updates the state of the DeviceSpec object, giving values for each
         axis [x,y,z,roll,pitch,yaw] in range [-1.0, 1.0]
         The state tuple is only set when all 6 DoF have been read correctly.
-        
+
         The timestamp (in fractional seconds since the start of the program)  is written as element "t"
-        
+
         If callback is provided, it is called on with a copy of the current state tuple.
         If button_callback is provided, it is called only on button state changes with the argument (state, button_state).
-        
+
         Parameters:
             data    The data for this HID event, as returned by the HID callback
-                        
+
         """
         button_changed = False
 
@@ -219,6 +219,26 @@ device_specs = {
         name="SpaceNavigator",
         # vendor ID and product ID
         hid_id=[0x46D, 0xC626],
+        # LED HID usage code pair
+        led_id=[0x8, 0x4B],
+        mappings={
+            "x": AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+            "y": AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+            "z": AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+            "pitch": AxisSpec(channel=2, byte1=1, byte2=2, scale=-1),
+            "roll": AxisSpec(channel=2, byte1=3, byte2=4, scale=-1),
+            "yaw": AxisSpec(channel=2, byte1=5, byte2=6, scale=1),
+        },
+        button_mapping=[
+            ButtonSpec(channel=3, byte=1, bit=0),
+            ButtonSpec(channel=3, byte=1, bit=1),
+        ],
+        axis_scale=350.0,
+    ),
+        "SpaceMouse Compact": DeviceSpec(
+        name="SpaceMouse Compact",
+        # vendor ID and product ID
+        hid_id=[0x256F, 0xC635],
         # LED HID usage code pair
         led_id=[0x8, 0x4B],
         mappings={
@@ -305,7 +325,7 @@ def close():
 
 def read():
     """Return the current state of the active navigation controller.
-    
+
     Returns:
         state: {t,x,y,z,pitch,yaw,roll,button} namedtuple
         None if the device is not open.
@@ -317,8 +337,8 @@ def read():
 
 
 def list_devices():
-    """Return a list of the supported devices connected  
-    
+    """Return a list of the supported devices connected
+
     Returns:
         A list of string names of the devices supported which were found. Empty if no supported devices found
     """
@@ -339,10 +359,10 @@ def open(callback=None, button_callback=None, device=None):
     """
     Open a 3D space navigator device. Makes this device the current active device, which enables the module-level read() and close()
     calls. For multiple devices, use the read() and close() calls on the returned object instead, and don't use the module-level calls.
-    
-    Parameters:        
-        callback: If callback is provided, it is called on each HID update with a copy of the current state namedtuple  
-        button_callback: If button_callback is provided, it is called on each button push, with the arguments (state_tuple, button_state) 
+
+    Parameters:
+        callback: If callback is provided, it is called on each HID update with a copy of the current state namedtuple
+        button_callback: If button_callback is provided, it is called on each button push, with the arguments (state_tuple, button_state)
         device: name of device to open. Must be one of the values in supported_devices. If None, chooses the first supported device found.
     Returns:
         Device object if the device was opened successfully
