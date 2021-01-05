@@ -255,6 +255,26 @@ device_specs = {
         ],
         axis_scale=350.0,
     ),
+    "SpaceMouse Wireless": DeviceSpec(
+        name="SpaceMouse Wireless",
+        # vendor ID and product ID
+        hid_id=[0x256F, 0xC62E],
+        # LED HID usage code pair
+        led_id=[0x8, 0x4B],
+        mappings={
+            "x": AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+            "y": AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+            "z": AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+            "pitch": AxisSpec(channel=1, byte1=7, byte2=8, scale=-1),
+            "roll": AxisSpec(channel=1, byte1=9, byte2=10, scale=-1),
+            "yaw": AxisSpec(channel=1, byte1=11, byte2=12, scale=1),
+        },
+        button_mapping=[
+            ButtonSpec(channel=3, byte=1, bit=0),
+            ButtonSpec(channel=3, byte=1, bit=1),
+        ],
+        axis_scale=350.0,
+    ),
     "SpaceMouse Pro Wireless": DeviceSpec(
         name="SpaceMouse Pro Wireless",
         # vendor ID and product ID
