@@ -34,14 +34,15 @@ State objects returned from read() have 7 attributes: [t,x,y,z,roll,pitch,yaw,bu
 * button: list of button states (0 or 1), in order specified in the device specifier
 
 ## API
-    open(callback=None, button_callback=None)      
+    open(callback=None, button_callback=None, device=None)      
         Open a 3D space navigator device. Makes this device the current active device, which enables the module-level read() and close()
         calls. For multiple devices, use the read() and close() calls on the returned object instead, and don't use the module-level calls.
     
         Parameters:        
             callback: If callback is provided, it is called on each HID update with a copy of the current state namedtuple  
             button_callback: If button_callback is provided, it is called on each button push, with the arguments (state_tuple, button_state) 
-            device: name of device to open. Must be one of the values in supported_devices. If None, chooses the first supported device found.            
+            device: name of device to open, as a string like "SpaceNavigator". Must be one of the values in `supported_devices`. 
+                    If `None`, chooses the first supported device found.            
         Returns:
             Device object if the device was opened successfully
             None if the device could not be opened
