@@ -1,7 +1,14 @@
 # pyspacenavigator
 3Dconnexion Space Navigator in Python using raw HID (Windows only). Note: you **don't** need to install or use any of the drivers or 3Dconnexion software to use this package. It interfaces with the controller directly.
 
-Implements a simple interface to the 6 DoF 3Dconnexion [Space Navigator](http://www.3dconnexion.co.uk/products/spacemouse/spacenavigator.html) device.
+Implements a simple interface to the 6 DoF 3Dconnexion [Space Navigator](http://www.3dconnexion.co.uk/products/spacemouse/spacenavigator.html) device as well as similar devices. The following 3dconnexion devices are supported:
+
+* SpaceNavigator
+* SpaceMouse Pro
+* SpaceMouse Pro Wireless
+* SpaceMouse Wireless
+* 3Dconnexion Universal Receiver
+* SpaceMouse Compact
 
 Requires [pywinusb](https://pypi.python.org/pypi/pywinusb/) to access HID data -- this is Windows only.
 
