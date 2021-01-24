@@ -9,6 +9,7 @@ Implements a simple interface to the 6 DoF 3Dconnexion [Space Navigator](http://
 * SpaceMouse Wireless
 * 3Dconnexion Universal Receiver
 * SpaceMouse Compact
+* SpacePilot Pro
 
 Requires [pywinusb](https://pypi.python.org/pypi/pywinusb/) to access HID data -- this is Windows only.
 
