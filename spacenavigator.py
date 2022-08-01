@@ -11,6 +11,7 @@ __version__ = "0.2.2"
 # clock for timing
 high_acc_clock = timeit.default_timer
 
+
 GENERIC_PAGE = 0x1
 BUTTON_PAGE = 0x9
 LED_PAGE = 0x8
