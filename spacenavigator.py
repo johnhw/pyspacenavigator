@@ -117,7 +117,7 @@ class DeviceSpec(object):
     @property
     def state(self):
         """Return the current value of read()
-        
+
         Returns: state: {t,x,y,z,pitch,yaw,roll,button} namedtuple
                 None if the device is not open.
         """
@@ -153,8 +153,8 @@ class DeviceSpec(object):
             self.device = None
 
     def read(self):
-        """Return the current state of this navigation controller.    
-        
+        """Return the current state of this navigation controller.
+
         Returns:
             state: {t,x,y,z,pitch,yaw,roll,button} namedtuple
             None if the device is not open.
@@ -167,19 +167,19 @@ class DeviceSpec(object):
     def process(self, data):
         """
         Update the state based on the incoming data
-        
+
         This function updates the state of the DeviceSpec object, giving values for each
         axis [x,y,z,roll,pitch,yaw] in range [-1.0, 1.0]
         The state tuple is only set when all 6 DoF have been read correctly.
-        
+
         The timestamp (in fractional seconds since the start of the program)  is written as element "t"
-        
+
         If callback is provided, it is called on with a copy of the current state tuple.
         If button_callback is provided, it is called only on button state changes with the argument (state, button_state).
-        
+
         Parameters:
             data    The data for this HID event, as returned by the HID callback
-                        
+
         """
         button_changed = False
 
@@ -236,6 +236,26 @@ device_specs = {
         ],
         axis_scale=350.0,
     ),
+    "SpaceMouse Compact": DeviceSpec(
+        name="SpaceMouse Compact",
+        # vendor ID and product ID
+        hid_id=[0x256F, 0xC635],
+        # LED HID usage code pair
+        led_id=[0x8, 0x4B],
+        mappings={
+            "x": AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+            "y": AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+            "z": AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+            "pitch": AxisSpec(channel=2, byte1=1, byte2=2, scale=-1),
+            "roll": AxisSpec(channel=2, byte1=3, byte2=4, scale=-1),
+            "yaw": AxisSpec(channel=2, byte1=5, byte2=6, scale=1),
+        },
+        button_mapping=[
+            ButtonSpec(channel=3, byte=1, bit=0),
+            ButtonSpec(channel=3, byte=1, bit=1),
+        ],
+        axis_scale=350.0,
+    ),    
     "SpaceMouse Pro Wireless": DeviceSpec(
         name="SpaceMouse Pro Wireless",
         # vendor ID and product ID
@@ -267,6 +287,130 @@ device_specs = {
             ButtonSpec(channel=3, byte=1, bit=4),  # REAR
             ButtonSpec(channel=3, byte=1, bit=1),
         ],  # FIT
+        axis_scale=350.0,
+    ),
+    "SpaceMouse Pro": DeviceSpec(
+        name="SpaceMouse Pro",
+        # vendor ID and product ID
+        hid_id=[0x46D, 0xC62b],
+        led_id=[0x8, 0x4B],
+        mappings={
+            "x": AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+            "y": AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+            "z": AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+            "pitch": AxisSpec(channel=2, byte1=1, byte2=2, scale=-1),
+            "roll": AxisSpec(channel=2, byte1=3, byte2=4, scale=-1),
+            "yaw": AxisSpec(channel=2, byte1=5, byte2=6, scale=1),
+        },
+        button_mapping=[
+            ButtonSpec(channel=3, byte=1, bit=0),  # MENU
+            ButtonSpec(channel=3, byte=3, bit=7),  # ALT
+            ButtonSpec(channel=3, byte=4, bit=1),  # CTRL
+            ButtonSpec(channel=3, byte=4, bit=0),  # SHIFT
+            ButtonSpec(channel=3, byte=3, bit=6),  # ESC
+            ButtonSpec(channel=3, byte=2, bit=4),  # 1
+            ButtonSpec(channel=3, byte=2, bit=5),  # 2
+            ButtonSpec(channel=3, byte=2, bit=6),  # 3
+            ButtonSpec(channel=3, byte=2, bit=7),  # 4
+            ButtonSpec(channel=3, byte=2, bit=0),  # ROLL CLOCKWISE
+            ButtonSpec(channel=3, byte=1, bit=2),  # TOP
+            ButtonSpec(channel=3, byte=4, bit=2),  # ROTATION
+            ButtonSpec(channel=3, byte=1, bit=5),  # FRONT
+            ButtonSpec(channel=3, byte=1, bit=4),  # REAR
+            ButtonSpec(channel=3, byte=1, bit=1),  # FIT
+        ],  
+        axis_scale=350.0,
+    ),
+    "SpaceMouse Wireless": DeviceSpec(
+        name="SpaceMouse Wireless",
+        # vendor ID and product ID
+        hid_id=[0x256F, 0xC62E],
+        # LED HID usage code pair
+        led_id=[0x8, 0x4B],
+        mappings={
+            "x": AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+            "y": AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+            "z": AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+            "pitch": AxisSpec(channel=1, byte1=7, byte2=8, scale=-1),
+            "roll": AxisSpec(channel=1, byte1=9, byte2=10, scale=-1),
+            "yaw": AxisSpec(channel=1, byte1=11, byte2=12, scale=1),
+        },
+        button_mapping=[
+            ButtonSpec(channel=3, byte=1, bit=0), #LEFT
+            ButtonSpec(channel=3, byte=1, bit=1), #RIGHT
+        ],  # FIT
+        axis_scale=350.0,
+    ),
+    "3Dconnexion Universal Receiver": DeviceSpec(
+        name="3Dconnexion Universal Receiver",
+        # vendor ID and product ID
+        hid_id=[0x256F, 0xC652],
+        # LED HID usage code pair
+        led_id=[0x8, 0x4B],
+        mappings={
+            "x": AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+            "y": AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+            "z": AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+            "pitch": AxisSpec(channel=1, byte1=7, byte2=8, scale=-1),
+            "roll": AxisSpec(channel=1, byte1=9, byte2=10, scale=-1),
+            "yaw": AxisSpec(channel=1, byte1=11, byte2=12, scale=1),
+        },
+        button_mapping=[
+            ButtonSpec(channel=3, byte=1, bit=0),  # MENU
+            ButtonSpec(channel=3, byte=3, bit=7),  # ALT
+            ButtonSpec(channel=3, byte=4, bit=1),  # CTRL
+            ButtonSpec(channel=3, byte=4, bit=0),  # SHIFT
+            ButtonSpec(channel=3, byte=3, bit=6),  # ESC
+            ButtonSpec(channel=3, byte=2, bit=4),  # 1
+            ButtonSpec(channel=3, byte=2, bit=5),  # 2
+            ButtonSpec(channel=3, byte=2, bit=6),  # 3
+            ButtonSpec(channel=3, byte=2, bit=7),  # 4
+            ButtonSpec(channel=3, byte=2, bit=0),  # ROLL CLOCKWISE
+            ButtonSpec(channel=3, byte=1, bit=2),  # TOP
+            ButtonSpec(channel=3, byte=4, bit=2),  # ROTATION
+            ButtonSpec(channel=3, byte=1, bit=5),  # FRONT
+            ButtonSpec(channel=3, byte=1, bit=4),  # REAR
+            ButtonSpec(channel=3, byte=1, bit=1),
+        ],  # FIT
+        axis_scale=350.0,
+    ),
+    "SpacePilot Pro": DeviceSpec(
+        name="SpacePilot Pro",
+        # vendor ID and product ID
+        hid_id=[0x46D, 0xC629],
+        # LED HID usage code pair
+        led_id=[0x8, 0x4B],
+        mappings={
+            "x": AxisSpec(channel=1, byte1=1, byte2=2, scale=1),
+            "y": AxisSpec(channel=1, byte1=3, byte2=4, scale=-1),
+            "z": AxisSpec(channel=1, byte1=5, byte2=6, scale=-1),
+            "pitch": AxisSpec(channel=2, byte1=1, byte2=2, scale=-1),
+            "roll": AxisSpec(channel=2, byte1=3, byte2=4, scale=-1),
+            "yaw": AxisSpec(channel=2, byte1=5, byte2=6, scale=1),
+        },
+        button_mapping=[
+            ButtonSpec(channel=3, byte=4, bit=0),  # SHIFT
+            ButtonSpec(channel=3, byte=3, bit=6),  # ESC
+            ButtonSpec(channel=3, byte=4, bit=1),  # CTRL
+            ButtonSpec(channel=3, byte=3, bit=7),  # ALT
+            ButtonSpec(channel=3, byte=3, bit=1),  # 1
+            ButtonSpec(channel=3, byte=3, bit=2),  # 2
+            ButtonSpec(channel=3, byte=2, bit=6),  # 3
+            ButtonSpec(channel=3, byte=2, bit=7),  # 4
+            ButtonSpec(channel=3, byte=3, bit=0),  # 5
+            ButtonSpec(channel=3, byte=1, bit=0),  # MENU
+            ButtonSpec(channel=3, byte=4, bit=6),  # -
+            ButtonSpec(channel=3, byte=4, bit=5),  # +
+            ButtonSpec(channel=3, byte=4, bit=4),  # DOMINANT
+            ButtonSpec(channel=3, byte=4, bit=3),  # PAN/ZOOM
+            ButtonSpec(channel=3, byte=4, bit=2),  # ROTATION
+            ButtonSpec(channel=3, byte=2, bit=0),  # ROLL CLOCKWISE
+            ButtonSpec(channel=3, byte=1, bit=2),  # TOP
+            ButtonSpec(channel=3, byte=1, bit=5),  # FRONT
+            ButtonSpec(channel=3, byte=1, bit=4),  # REAR
+            ButtonSpec(channel=3, byte=2, bit=2),  # ISO
+            ButtonSpec(channel=3, byte=1, bit=1),  # FIT
+        ], 
         axis_scale=350.0,
     ),
 }
@@ -306,7 +450,7 @@ def close():
 
 def read():
     """Return the current state of the active navigation controller.
-    
+
     Returns:
         state: {t,x,y,z,pitch,yaw,roll,button} namedtuple
         None if the device is not open.
@@ -318,8 +462,8 @@ def read():
 
 
 def list_devices():
-    """Return a list of the supported devices connected  
-    
+    """Return a list of the supported devices connected
+
     Returns:
         A list of string names of the devices supported which were found. Empty if no supported devices found
     """
@@ -336,15 +480,16 @@ def list_devices():
     return devices
 
 
-def open(callback=None, button_callback=None, device=None):
+def open(callback=None, button_callback=None, device=None, DeviceNumber=0):
     """
     Open a 3D space navigator device. Makes this device the current active device, which enables the module-level read() and close()
     calls. For multiple devices, use the read() and close() calls on the returned object instead, and don't use the module-level calls.
-    
-    Parameters:        
-        callback: If callback is provided, it is called on each HID update with a copy of the current state namedtuple  
-        button_callback: If button_callback is provided, it is called on each button push, with the arguments (state_tuple, button_state) 
+
+    Parameters:
+        callback: If callback is provided, it is called on each HID update with a copy of the current state namedtuple
+        button_callback: If button_callback is provided, it is called on each button push, with the arguments (state_tuple, button_state)
         device: name of device to open. Must be one of the values in supported_devices. If None, chooses the first supported device found.
+        DeviceNumber: use the first (DeviceNumber=0) device you find. (for universal wireless receiver)
     Returns:
         Device object if the device was opened successfully
         None if the device could not be opened
@@ -360,29 +505,46 @@ def open(callback=None, button_callback=None, device=None):
         else:
             return None
 
+    found_devices = []
     all_hids = hid.find_all_hid_devices()
     if all_hids:
         for index, dev in enumerate(all_hids):
             spec = device_specs[device]
             if dev.vendor_id == spec.hid_id[0] and dev.product_id == spec.hid_id[1]:
+                found_devices.append({"Spec":spec,"HIDDevice":dev})
                 print("%s found" % device)
-                # create a copy of the device specification
-                new_device = copy.deepcopy(spec)
-                new_device.device = dev
 
-                # set the callbacks
-                new_device.callback = callback
-                new_device.button_callback = button_callback
-                # open the device and set the data handler
-                new_device.open()
-                dev.set_raw_data_handler(lambda x: new_device.process(x))
-                _active_device = new_device
-                return new_device
-        print("No supported devices found")
-        return None
     else:
         print("No HID devices detected")
         return None
+
+
+    if len(found_devices) == 0:
+        print("No supported devices found")
+        return None
+    else:
+        
+        if len(found_devices) <= DeviceNumber:
+            DeviceNumber = 0
+
+        if len(found_devices) > DeviceNumber:
+            # create a copy of the device specification
+            spec = found_devices[DeviceNumber]["Spec"]
+            dev = found_devices[DeviceNumber]["HIDDevice"]
+            new_device = copy.deepcopy(spec)
+            new_device.device = dev
+
+            # set the callbacks
+            new_device.callback = callback
+            new_device.button_callback = button_callback
+            # open the device and set the data handler
+            new_device.open()
+            dev.set_raw_data_handler(lambda x: new_device.process(x))
+            _active_device = new_device
+            return new_device
+
+    print("Unknown error occured.")
+    return None
 
 
 def print_state(state):
@@ -413,7 +575,6 @@ def set_led(state):
 
 
 if __name__ == "__main__":
-    d = device_specs["SpaceNavigator"]
     print("Devices found:\n\t%s" % "\n\t".join(list_devices()))
     dev = open(callback=print_state, button_callback=toggle_led)
     print(dev.describe_connection())
@@ -426,3 +587,4 @@ if __name__ == "__main__":
             sleep(1)
             dev.set_led(0)
 
+            
