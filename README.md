@@ -66,7 +66,11 @@ There are also attributes:
     
     dev.connected       True if the device is connected, False otherwise
     dev.state           Convenience property which returns the same value as read()
-    
+
+# Other devices
+
+This *seems* to work with other 3D Connexion devices with some tweaking. This [very helpful issue comment illustrates steps](https://github.com/johnhw/pyspacenavigator/issues/1#issuecomment-2093970390) to get a new device working.
+
     
     
     
